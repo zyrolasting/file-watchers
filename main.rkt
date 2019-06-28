@@ -14,7 +14,7 @@
 
   (define method-string (make-parameter "robust"))
   (define paths (command-line
-    #:program "clerk"
+    #:program "file-watchers"
     #:once-each
     [("-m" "--method")  user-method
                         ("Use method: apathetic, intensive, robust (Default: robust)."
