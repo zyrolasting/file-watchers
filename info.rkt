@@ -5,5 +5,5 @@
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib"))
 (define scribblings '(("scribblings/file-watchers.scrbl" ())))
 (define pkg-desc "Recursive file system watching threads")
-(define version "0.0")
+(define version "0.1")
 (define pkg-authors '(Sage Gerard))
