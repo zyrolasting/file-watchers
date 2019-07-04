@@ -4,6 +4,7 @@ This is the out-of-the-box way to watch files you have been looking for in Racke
 
 Use this to understand I/O behavior in a system and to increase iteration speed for local development.
 
+* [Documentation on racket-lang.org](https://docs.racket-lang.org/file-watchers/index.html?q=file-watchers)
 * `raco test *.rkt` to run tests
 * `racket main.rkt [-m apathetic, robust, or intensive] DIRECTORY ...` to watch the given directories with one of the methods in the project. See the documentation for more.
 * `raco setup -l file-watchers` to build the package and documentation.
