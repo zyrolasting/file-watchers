@@ -11,7 +11,21 @@ Use file-watchers to audit and react to file activity in a system.
 
 @section{Quick Start}
 
-Use the following Racket definitions with your chosen directories.
+For command-line use, use the @racket[file-watchers] raco command.
+
+@verbatim[#:indent 2]|{
+  $ raco file-watchers -h # For help
+  $ raco file-watchers dir # Watch given directory
+
+  # Watch directories with a given method (methods documented below).
+  $ raco file-watchers -m apathetic dir
+  $ raco file-watchers -m robust dir
+  $ raco file-watchers -m intensive dir
+}|
+
+
+For programmatic use, you can apply @racket[watch-directories] to
+a list of target directories.
 
 @racketblock[
 (require file-watchers)
