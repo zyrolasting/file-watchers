@@ -34,7 +34,7 @@
    [else          robust-watch]))
 
 (when (not (equal? normalized-method-string (method-string)))
-  (printf "Unrecognized method: ~a. Falling back to robust watch.~n" method-string))
+  (printf "Unrecognized method: ~a. Falling back to robust watch.~n" (method-string)))
 
 (printf "Starting ~a watch over paths:~n~a~n~n"
       normalized-method-string
