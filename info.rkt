@@ -8,4 +8,4 @@
 (define version "0.1")
 (define pkg-authors '(Sage Gerard))
 (define raco-commands
-  '(("file-watchers" file-watchers/cli "Monitor files using file-watchers" 100)))
+  '(("file-watchers" file-watchers/cli "Monitor files using file-watchers" #f)))
