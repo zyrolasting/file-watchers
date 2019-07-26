@@ -47,7 +47,7 @@ Starts threads using @racket[thread-maker] to watch each given directory.
 Meant for use with file-watcher procedures, namely
 @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch].
 
-The thread returned by @racket[watch-directories] will wait all threads created with @racket[thread-maker] terminate.}
+The thread returned by @racket[watch-directories] will wait for all threads created with @racket[thread-maker] to terminate.}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
