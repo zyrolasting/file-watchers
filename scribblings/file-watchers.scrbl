@@ -41,12 +41,13 @@ will appear via @racket[displayln].
   [on-activity (-> list? any) displayln]
   [on-status (-> list? any) displayln]
   [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
-  void?]{
+  thread?]{
 
 Starts threads using @racket[thread-maker] to watch each given directory.
 Meant for use with file-watcher procedures, namely
 @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch].
-This will block the current thread until all threads created with @racket[thread-maker] terminate.}
+
+The thread returned by @racket[watch-directories] will wait all threads created with @racket[thread-maker] terminate.}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
