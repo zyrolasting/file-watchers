@@ -11,7 +11,21 @@ Use file-watchers to audit and react to file activity in a system.
 
 @section{Quick Start}
 
-Use the following Racket definitions with your chosen directories.
+For command-line use, use the @racket[file-watchers] raco command.
+
+@verbatim[#:indent 2]|{
+  $ raco file-watchers -h # For help
+  $ raco file-watchers dir # Watch given directory
+
+  # Watch directories with a given method (methods documented below).
+  $ raco file-watchers -m apathetic dir
+  $ raco file-watchers -m robust dir
+  $ raco file-watchers -m intensive dir
+}|
+
+
+For programmatic use, you can apply @racket[watch-directories] to
+a list of target directories.
 
 @racketblock[
 (require file-watchers)
@@ -27,12 +41,13 @@ will appear via @racket[displayln].
   [on-activity (-> list? any) displayln]
   [on-status (-> list? any) displayln]
   [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
-  void?]{
+  thread?]{
 
 Starts threads using @racket[thread-maker] to watch each given directory.
 Meant for use with file-watcher procedures, namely
 @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch].
-This will block the current thread until all threads created with @racket[thread-maker] terminate.}
+
+The thread returned by @racket[watch-directories] will wait for all threads created with @racket[thread-maker] to terminate.}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
