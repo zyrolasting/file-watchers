@@ -9,6 +9,7 @@
   file-watcher-status-channel
   file-watcher-channel-try-get
   file-watcher-channel-get
+  path-on-disk?
   (all-from-out "./robust-watch.rkt")
   (all-from-out "./intensive-watch.rkt")
   (all-from-out "./apathetic-watch.rkt")
