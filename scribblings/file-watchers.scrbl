@@ -142,15 +142,14 @@ watching thread.
 @section{Poll-based file monitoring}
 
 @defproc[#:kind "file-watcher"
-(robust-watch [path directory-exists?])
+(robust-watch [path path-on-disk?])
               thread?]{
 
 A @racket[robust] watch operates on a polling mechanism that compares
-recursive listings of the given directory @racket[path] to report changes.
-This approach is cross-platform, but cannot detect any activity between
-filesystem polls.
+recursive listings of the @racket[path] to report changes. This approach
+is cross-platform, but cannot detect any activity between filesystem polls.
 
-Furthermore, @racket[robust-watch] only detects changes in file permissions and access time.
+Furthermore, @racket[robust-watch] will only compare file permissions and access times, not contents.
 
 @racket[robust-watch] only reports @racket['add], @racket['change], and @racket['remove]
 events on @racket[file-activity-channel]. It does not report status information
