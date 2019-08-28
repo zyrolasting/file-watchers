@@ -60,7 +60,7 @@ or a procedure that returns a thread created using one of those procedures.}
 Like @racket[watch], except the contract is restricted to directories.
 
 @bold{DEPRECATED:} Kept for backwards compatibility. This procedure will be removed
-on or after January 1, 2020.
+on or after January 1, 2020.}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
@@ -71,6 +71,10 @@ If @racket[apathetic] is true, @racket[apathetic-watch] will be returned instead
 
 If file change events are not supported on the operating system or if file-level monitoring is unavailable,
 then @racket[robust-watch] is returned.}
+
+@defproc[(path-on-disk? [path path?]) boolean?]{
+Returns @racket[#t] if the @racket[path] is an existing file or directory on disk.
+}
 
 @section{Synchronization}
 
