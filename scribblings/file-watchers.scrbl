@@ -104,27 +104,27 @@ Waits for and returns the next available message from @racket[file-watcher-statu
 @section{Detecting changes without concern for root cause}
 
 @defproc[#:kind "file-watcher"
-(apathetic-watch [path directory-exists?])
+(apathetic-watch [path path-on-disk?])
                  thread?]{
 
-An @italic{apathetic} thread recursively scans the given
-directory and waits for the first to trigger a
-@racket[filesystem-change-evt].}
+An @italic{apathetic} thread watches the file, directory, or link at the
+given path. It will signal any activity that triggers a @racket[filesystem-change-evt].
+The thread will terminate when no file, directory, or link exists at the given @racket[path].
 
-An apathetic thread reports a @racket[(list 'apathetic 'watching path)] status on
-@racket[file-watcher-status-channel] each time it starts waiting for a change.
-There are no other status messages and the thread will terminate
-when it can no longer access the directory located at the given @racket[path].
+If @racket[path] is a directory, @racket[apathetic-watch] will monitor all files recursively,
+but all changes within the directory are reported as changes to @racket[path].
 
-@racket[file-activity-channel] will only report
-@racket[(list 'apathetic 'change path)] when any change
-is detected.
+An apathetic watch:
+
+@itemlist[
+@item{...reports only @racket[(list 'apathetic 'watching path)] on @racket[file-watcher-status-channel] each time it starts waiting for a change.}
+@item{...reports only @racket[(list 'apathetic 'change path)] on @racket[file-activity-channel] when any change is detected.}]
 
 The below example starts an apathetic watch thread,
 waits for the thread to report that it is watching
 @racket["dir"], then deletes @racket["dir"].
-The apathetic watcher thread will report that the change occurred
-on @racket[file-activity-channel] before terminating,
+The apathetic watcher thread will report that
+the change occurred on @racket[file-activity-channel] before terminating,
 since @racket["dir"] was the root path for the
 watching thread.
 
@@ -137,8 +137,7 @@ watching thread.
 
 (thread-wait apathetic-watcher)
 (displayln (thread-dead? apathetic-watcher))
-]
-
+]}
 
 @section{Poll-based file monitoring}
 
