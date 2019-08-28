@@ -23,18 +23,33 @@ For command-line use, use the @racket[file-watchers] raco command.
   $ raco file-watchers -m intensive dir
 }|
 
-
-For programmatic use, you can apply @racket[watch-directories] to
-a list of target directories.
+For programmatic use, you can apply @racket[watch] to a list of targets.
 
 @racketblock[
 (require file-watchers)
 
-(define watcher (watch-directories '("/path/to/dir")))
+(define watcher (watch '("/path/to/dir" "config.json")))
 ]
 
 By default, lists describing file activity from the watched directory
 will appear via @racket[displayln].
+
+@defproc[(watch
+  [paths (listof path-on-disk?) (list (current-directory))]
+  [on-activity (-> list? any) displayln]
+  [on-status (-> list? any) displayln]
+  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
+  thread?]{
+Returns a thread that watches all given paths representing files or directories
+on disk. For each path, @racket[thread-maker] is invoked to create a subordinate
+thread to monitor that path.
+
+The thread returned from @racket[watch] will wait for all subordinate threads
+to terminate before it itself terminates. Breaking is enabled.
+
+@racket[thread-maker] should either be one of @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch],
+or a procedure that returns a thread created using one of those procedures.}
+
 
 @defproc[(watch-directories
   [directories (listof directory-exists?) (list (current-directory))]
@@ -42,12 +57,10 @@ will appear via @racket[displayln].
   [on-status (-> list? any) displayln]
   [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
   thread?]{
+Like @racket[watch], except the contract is restricted to directories.
 
-Starts threads using @racket[thread-maker] to watch each given directory.
-Meant for use with file-watcher procedures, namely
-@racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch].
-
-The thread returned by @racket[watch-directories] will wait for all threads created with @racket[thread-maker] to terminate.}
+@bold{DEPRECATED:} Kept for backwards compatibility. This procedure will be removed
+on or after January 1, 2020.
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
@@ -163,11 +176,12 @@ should wait before comparing directory listings. This defaults to @racket[250].
 @section{Verbose file-level monitoring}
 
 @defproc[#:kind "file-watcher"
-(intensive-watch [path directory-exists?])
+(intensive-watch [path path-on-disk?])
                  thread?]{
 
-An @italic{intensive} watch dedicates a thread to each
-file in the directory to monitor with a separate @racket[filesystem-change-evt].
+An @italic{intensive} watch dedicates a thread to each file discoverable from @racket[path],
+each of which monitors its file with @racket[filesystem-change-evt].
+
 Due to the resource-hungry nature of the model, an intensive watch may
 warrant a dedicated custodian.
 

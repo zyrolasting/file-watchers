@@ -20,7 +20,12 @@
                               (-> list? any)
                               (-> list? any)
                               (-> path? thread?))
-                             thread?)]))
+                             thread?)]
+    [watch (->* () ((listof path-on-disk?)
+                    (-> list? any)
+                    (-> list? any)
+                    (-> path? thread?))
+                    thread?)]))
 
 ;; ------------------------------------------------------------------ 
 ;; Implementation
@@ -42,15 +47,22 @@
       (if apathetic apathetic-watch intensive-watch)
       robust-watch))
 
-(define (watch-directories
-          [directories (list (current-directory))]
+(define (watch
+          [paths (list (current-directory))]
           [on-activity displayln]
           [on-status displayln]
           [thread-maker (suggest-approach #:apathetic #f)])
-  (define watchers (map thread-maker directories))
+  (define watchers (map thread-maker paths))
   (thread (lambda () (let loop ()
     (define activity (async-channel-try-get (file-activity-channel)))
     (define status (async-channel-try-get (file-watcher-status-channel)))
     (when status (on-status status))
     (when activity (on-activity activity))
     (when (ormap thread-running? watchers) (loop))))))
+
+(define (watch-directories
+          [paths (list (current-directory))]
+          [on-activity displayln]
+          [on-status displayln]
+          [thread-maker (suggest-approach #:apathetic #f)])
+  (watch paths on-activity on-status thread-maker))
