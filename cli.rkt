@@ -10,6 +10,12 @@
     racket/list
     raco/command-name)
 
+
+  (define (format-paths paths)
+    (string-join
+      (map (lambda (p) (~a "-->  " p)) paths)
+      (format "~n")))
+
   (define method-string (make-parameter "robust"))
   (define paths (command-line
     #:program (short-program+command-name)
@@ -37,12 +43,20 @@
   (when (not (equal? normalized-method-string (method-string)))
     (printf "Unrecognized method: ~a. Falling back to robust watch.~n" (method-string)))
 
-  (printf "Starting ~a watch over paths:~n~a~n~n"
-        normalized-method-string
-        (string-join
-          (map (lambda (p) (~a "-->  " p)) paths)
-          (format "~n")))
+  (define does-not-exist (filter (λ (p) (not (path-on-disk? p))) paths))
+  (define exists (filter path-on-disk? paths))
 
-  (with-handlers ([exn:break? (λ (e) (printf "~nStopping...~n"))])
-    (thread-wait (watch paths displayln displayln method))
-    (displayln "All watchers are done.")))
+  (when (> (length does-not-exist) 0)
+    (printf "These paths do not exist on the system and will not be monitored:~n~a~n~n"
+            (format-paths does-not-exist)))
+
+  (if (> (length exists) 0)
+      (begin
+        (printf "Starting ~a watch over paths:~n~a~n~n"
+              normalized-method-string
+              (format-paths exists))
+
+        (with-handlers ([exn:break? (λ (e) (printf "~nStopping...~n"))])
+          (thread-wait (watch exists displayln displayln method))
+          (displayln "All watchers are done.")))
+      (displayln "Nothing to watch. Exiting.")))
