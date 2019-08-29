@@ -59,8 +59,11 @@ or a procedure that returns a thread created using one of those procedures.}
   thread?]{
 Like @racket[watch], except the contract is restricted to directories.
 
-@bold{DEPRECATED:} Kept for backwards compatibility. This procedure will be removed
-on or after January 1, 2020.}
+
+@deprecated[#:what "procedure" @racket[watch]]{
+@racket[watch-directories] will be removed after January 1, 2020.}
+
+}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
