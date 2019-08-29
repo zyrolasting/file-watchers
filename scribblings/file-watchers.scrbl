@@ -17,10 +17,10 @@ For command-line use, use the @racket[file-watchers] raco command.
   $ raco file-watchers -h # For help
   $ raco file-watchers dir # Watch given directory
 
-  # Watch directories with a given method (methods documented below).
-  $ raco file-watchers -m apathetic dir
-  $ raco file-watchers -m robust dir
-  $ raco file-watchers -m intensive dir
+  # Watch files and directories with a given method (methods documented below).
+  $ raco file-watchers -m apathetic dir fileA fileB
+  $ raco file-watchers -m robust dir fileA fileB
+  $ raco file-watchers -m intensive dir fileA fileB
 }|
 
 For programmatic use, you can apply @racket[watch] to a list of targets.
