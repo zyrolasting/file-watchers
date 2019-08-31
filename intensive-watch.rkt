@@ -5,7 +5,7 @@
 
 (provide
   (contract-out
-    [intensive-watch  (->* () (directory-exists?) thread?)]))
+    [intensive-watch  (->* () (path-on-disk?) thread?)]))
 
 ;; ------------------------------------------------------------------ 
 ;; Implementation

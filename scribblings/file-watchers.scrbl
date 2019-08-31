@@ -17,24 +17,39 @@ For command-line use, use the @racket[file-watchers] raco command.
   $ raco file-watchers -h # For help
   $ raco file-watchers dir # Watch given directory
 
-  # Watch directories with a given method (methods documented below).
-  $ raco file-watchers -m apathetic dir
-  $ raco file-watchers -m robust dir
-  $ raco file-watchers -m intensive dir
+  # Watch files and directories with a given method (methods documented below).
+  $ raco file-watchers -m apathetic dir fileA fileB
+  $ raco file-watchers -m robust dir fileA fileB
+  $ raco file-watchers -m intensive dir fileA fileB
 }|
 
-
-For programmatic use, you can apply @racket[watch-directories] to
-a list of target directories.
+For programmatic use, you can apply @racket[watch] to a list of targets.
 
 @racketblock[
 (require file-watchers)
 
-(define watcher (watch-directories '("/path/to/dir")))
+(define watcher (watch '("/path/to/dir" "config.json")))
 ]
 
 By default, lists describing file activity from the watched directory
 will appear via @racket[displayln].
+
+@defproc[(watch
+  [paths (listof path-on-disk?) (list (current-directory))]
+  [on-activity (-> list? any) displayln]
+  [on-status (-> list? any) displayln]
+  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
+  thread?]{
+Returns a thread that watches all given paths representing files or directories
+on disk. For each path, @racket[thread-maker] is invoked to create a subordinate
+thread to monitor that path.
+
+The thread returned from @racket[watch] will wait for all subordinate threads
+to terminate before it itself terminates. Breaking is enabled.
+
+@racket[thread-maker] should either be one of @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch],
+or a procedure that returns a thread created using one of those procedures.}
+
 
 @defproc[(watch-directories
   [directories (listof directory-exists?) (list (current-directory))]
@@ -42,12 +57,13 @@ will appear via @racket[displayln].
   [on-status (-> list? any) displayln]
   [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
   thread?]{
+Like @racket[watch], except the contract is restricted to directories.
 
-Starts threads using @racket[thread-maker] to watch each given directory.
-Meant for use with file-watcher procedures, namely
-@racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch].
 
-The thread returned by @racket[watch-directories] will wait for all threads created with @racket[thread-maker] to terminate.}
+@deprecated[#:what "procedure" @racket[watch]]{
+@racket[watch-directories] will be removed after January 1, 2020.}
+
+}
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
          procedure?]{
@@ -58,6 +74,10 @@ If @racket[apathetic] is true, @racket[apathetic-watch] will be returned instead
 
 If file change events are not supported on the operating system or if file-level monitoring is unavailable,
 then @racket[robust-watch] is returned.}
+
+@defproc[(path-on-disk? [path path?]) boolean?]{
+Returns @racket[#t] if the @racket[path] is an existing file or directory on disk.
+}
 
 @section{Synchronization}
 
@@ -104,27 +124,27 @@ Waits for and returns the next available message from @racket[file-watcher-statu
 @section{Detecting changes without concern for root cause}
 
 @defproc[#:kind "file-watcher"
-(apathetic-watch [path directory-exists?])
+(apathetic-watch [path path-on-disk?])
                  thread?]{
 
-An @italic{apathetic} thread recursively scans the given
-directory and waits for the first to trigger a
-@racket[filesystem-change-evt].}
+An @italic{apathetic} thread watches the file, directory, or link at the
+given path. It will signal any activity that triggers a @racket[filesystem-change-evt].
+The thread will terminate when no file, directory, or link exists at the given @racket[path].
 
-An apathetic thread reports a @racket[(list 'apathetic 'watching path)] status on
-@racket[file-watcher-status-channel] each time it starts waiting for a change.
-There are no other status messages and the thread will terminate
-when it can no longer access the directory located at the given @racket[path].
+If @racket[path] is a directory, @racket[apathetic-watch] will monitor all files recursively,
+but all changes within the directory are reported as changes to @racket[path].
 
-@racket[file-activity-channel] will only report
-@racket[(list 'apathetic 'change path)] when any change
-is detected.
+An apathetic watch:
+
+@itemlist[
+@item{...reports only @racket[(list 'apathetic 'watching path)] on @racket[file-watcher-status-channel] each time it starts waiting for a change.}
+@item{...reports only @racket[(list 'apathetic 'change path)] on @racket[file-activity-channel] when any change is detected.}]
 
 The below example starts an apathetic watch thread,
 waits for the thread to report that it is watching
 @racket["dir"], then deletes @racket["dir"].
-The apathetic watcher thread will report that the change occurred
-on @racket[file-activity-channel] before terminating,
+The apathetic watcher thread will report that
+the change occurred on @racket[file-activity-channel] before terminating,
 since @racket["dir"] was the root path for the
 watching thread.
 
@@ -137,21 +157,19 @@ watching thread.
 
 (thread-wait apathetic-watcher)
 (displayln (thread-dead? apathetic-watcher))
-]
-
+]}
 
 @section{Poll-based file monitoring}
 
 @defproc[#:kind "file-watcher"
-(robust-watch [path directory-exists?])
+(robust-watch [path path-on-disk?])
               thread?]{
 
 A @racket[robust] watch operates on a polling mechanism that compares
-recursive listings of the given directory @racket[path] to report changes.
-This approach is cross-platform, but cannot detect any activity between
-filesystem polls.
+recursive listings of the @racket[path] to report changes. This approach
+is cross-platform, but cannot detect any activity between filesystem polls.
 
-Furthermore, @racket[robust-watch] only detects changes in file permissions and access time.
+Furthermore, @racket[robust-watch] will only compare file permissions and access times, not contents.
 
 @racket[robust-watch] only reports @racket['add], @racket['change], and @racket['remove]
 events on @racket[file-activity-channel]. It does not report status information
@@ -165,11 +183,12 @@ should wait before comparing directory listings. This defaults to @racket[250].
 @section{Verbose file-level monitoring}
 
 @defproc[#:kind "file-watcher"
-(intensive-watch [path directory-exists?])
+(intensive-watch [path path-on-disk?])
                  thread?]{
 
-An @italic{intensive} watch dedicates a thread to each
-file in the directory to monitor with a separate @racket[filesystem-change-evt].
+An @italic{intensive} watch dedicates a thread to each file discoverable from @racket[path],
+each of which monitors its file with @racket[filesystem-change-evt].
+
 Due to the resource-hungry nature of the model, an intensive watch may
 warrant a dedicated custodian.
 

@@ -8,7 +8,7 @@
 (provide
   (contract-out
     [robust-poll-milliseconds (parameter/c exact-positive-integer?)]
-    [robust-watch  (->* () (directory-exists?) thread?)]))
+    [robust-watch  (->* () (path-on-disk?) thread?)]))
 
 
 ;; ------------------------------------------------------------------ 
@@ -40,7 +40,9 @@
     listing))
 
 (define (get-robust-state path)
-    (define listing (recursive-file-list path))
+    (define listing (if (file-exists? path)
+                        (list path)
+                        (recursive-file-list path)))
     (make-immutable-hash (map cons
                               listing
                               (get-listing-numbers listing))))
@@ -61,17 +63,72 @@
       (hash->list (mark-changes prev next)))))
 
 (define (robust-watch [path (current-directory)])
+  (define complete (path->complete-path (simplify-path path #t)))
   (thread (lambda ()
-    (define initial (get-robust-state path))
+    (define initial (get-robust-state complete))
     (let loop ([state initial])
       (sync/enable-break (alarm-evt (+ (current-inexact-milliseconds)
                                        (robust-poll-milliseconds))))
-      (if (directory-exists? path)
-        (let ([next (get-robust-state path)])
+      (if (path-on-disk? complete)
+        (let ([next (get-robust-state complete)])
           (hash-for-each
             (mark-status state next)
-            (lambda (path op)
+            (lambda (affected op)
               (unless (equal? op 'same)
-                (report-activity op path))))
+                (report-activity op affected))))
           (loop next))
-        (report-activity 'remove path))))))
+        (report-activity 'remove complete))))))
+
+
+(module+ test
+  (require
+    rackunit
+    racket/async-channel
+    racket/file
+    (submod "./filesystem.rkt" test-lib)
+    (submod "./threads.rkt" test-lib))
+
+  (define (allow-poll) (sleep (/ (robust-poll-milliseconds) 1000)))
+  (test-case
+    "Robust watch over directory"
+    (parameterize ([current-directory (create-temp-directory)]
+                   [robust-poll-milliseconds 50]
+                   [file-activity-channel (make-async-channel)])
+      (create-file "a")
+      (create-file "b")
+      (create-file "c")
+      (define th (robust-watch))
+      (allow-poll)
+      (delete-file "c") (create-file "c")
+      (delete-file "b")
+      (allow-poll)
+      (delete-directory/files (current-directory))
+      (thread-wait th)
+
+      ; TODO: Paratition these messages into "may appear" and "must appear"
+      (define expected-messages
+        `((robust change ,(build-path (current-directory) "c")) ; must
+          (robust remove ,(build-path (current-directory) "b")) ; may
+          (robust remove ,(build-path (current-directory)))))   ; must
+
+      (let loop ()
+        (define msg (file-watcher-channel-try-get))
+        (when msg
+          (check-true (and (member msg expected-messages) #t))
+          (loop)))))
+
+  (test-case
+    "Robust watch over file"
+    (parameterize ([current-directory (create-temp-directory)]
+                   [robust-poll-milliseconds 50]
+                   [file-activity-channel (make-async-channel)])
+      (create-file (build-path "a"))
+      (define th (robust-watch "a"))
+      (allow-poll)
+      (delete-file "a")
+      (allow-poll)
+      (thread-wait th)
+      (delete-directory/files (current-directory))
+      (check-equal?
+        (sync (file-activity-channel))
+        `(robust remove ,(build-path (current-directory) "a"))))))
