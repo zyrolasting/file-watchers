@@ -24,7 +24,7 @@
 (define robust-poll-milliseconds (make-parameter 250))
 
 (define (get-file-attributes path)
-  (with-handlers ([exn:fail? (lambda () #f)])
+  (with-handlers ([exn:fail? (λ _ #f)])
                  (cons (file-or-directory-modify-seconds path)
                        (file-or-directory-permissions path 'bits))))
 
