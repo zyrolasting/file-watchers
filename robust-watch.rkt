@@ -11,7 +11,7 @@
 (provide
  (contract-out
   [robust-poll-milliseconds (parameter/c exact-positive-integer?)]
-  [robust-watch  (->* () (path-on-disk?) thread?)]))
+  [robust-watch  (->* () (path-on-disk? #:batch? boolean?) thread?)]))
 
 
 ;; ------------------------------------------------------------------
