@@ -28,8 +28,11 @@
 
 (define (get-file-attributes path)
   (with-handlers ([exn:fail? (λ _ #f)])
-    (cons (file-or-directory-modify-seconds path)
-          (file-or-directory-permissions path 'bits))))
+    (list (file-or-directory-modify-seconds path)
+          (file-or-directory-permissions path 'bits)
+          (if (file-exists? path)
+              (file-size path)
+              0))))
 
 (define (get-listing-numbers listing)
   (foldl
@@ -38,7 +41,7 @@
      (append res (list
                   (if (not attrs)
                       -1
-                      (+ (car attrs) (cdr attrs))))))
+                      (apply + attrs)))))
    '()
    listing))
 
