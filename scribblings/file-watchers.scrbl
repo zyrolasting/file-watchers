@@ -169,8 +169,7 @@ A @racket[robust] watch operates on a polling mechanism that compares
 recursive listings of the @racket[path] to report changes. This approach
 is cross-platform, but cannot detect any activity between filesystem polls.
 
-Furthermore, @racket[robust-watch] will only compare file permissions,
-access times, and file size -- i.e. not contents.
+Furthermore, @racket[robust-watch] will only compare file permissions, access times, and file size -- i.e. not contents.
 
 @racket[robust-watch] only reports @racket['add], @racket['change], and @racket['remove]
 events on @racket[file-activity-channel] It does not report status information

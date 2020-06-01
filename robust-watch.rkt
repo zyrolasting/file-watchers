@@ -41,12 +41,12 @@
         (apply + attrs))))
 
 (define (get-robust-state path)
-  (define listing (if (file-exists? path)
-                      (list path)
-                      (recursive-file-list path)))
-  (make-immutable-hash (map cons
-                            listing
-                            (get-listing-numbers listing))))
+   (define listing (if (file-exists? path)
+                       (list path)
+                       (recursive-file-list path)))
+   (make-immutable-hash (map cons
+                             listing
+                             (get-listing-numbers listing))))
 
 (define (mark-changes prev next)
   (hash-union prev next
@@ -55,9 +55,9 @@
 
 (define (mark-status prev next)
   (make-immutable-hash
-   (map
-    (lambda (pair)
-      (if (symbol? (cdr pair))
+    (map
+     (lambda (pair)
+       (if (symbol? (cdr pair))
           pair
           (cons (car pair)
                 (if (path-on-disk? (car pair)) 'add 'remove))))
@@ -111,15 +111,15 @@
 
 (module+ test
   (require
-   rackunit
-   racket/async-channel
-   racket/file
-   (submod "./filesystem.rkt" test-lib)
-   (submod "./threads.rkt" test-lib))
+    rackunit
+    racket/async-channel
+    racket/file
+    (submod "./filesystem.rkt" test-lib)
+    (submod "./threads.rkt" test-lib))
 
   (define (allow-poll) (sleep (/ (robust-poll-milliseconds) 1000)))
   (test-case
-      "Robust watch over directory, unbatched"
+     "Robust watch over directory, unbatched"
     (parameterize ([current-directory (create-temp-directory)]
                    [robust-poll-milliseconds 50]
                    [file-activity-channel (make-async-channel)])
@@ -136,9 +136,9 @@
 
       ; TODO: Paratition these messages into "may appear" and "must appear"
       (define expected-messages
-        `((robust change ,(build-path (current-directory) "c"))   ; must
-          (robust remove ,(build-path (current-directory) "b"))   ; may
-          (robust remove ,(build-path (current-directory)))))     ; must
+        `((robust change ,(build-path (current-directory) "c"))  ; must
+          (robust remove ,(build-path (current-directory) "b"))  ; may
+          (robust remove ,(build-path (current-directory)))))    ; must
 
       (let loop ()
         (define msg (file-watcher-channel-try-get))
@@ -148,7 +148,7 @@
 
 
   (test-case
-      "Robust watch over directory, batched"
+     "Robust watch over directory, batched"
     (parameterize ([current-directory (create-temp-directory)]
                    [robust-poll-milliseconds 50]
                    [file-activity-channel (make-async-channel)])
@@ -196,5 +196,5 @@
       (thread-wait th)
       (delete-directory/files (current-directory))
       (check-equal?
-       (sync (file-activity-channel))
-       `(robust remove ,(build-path (current-directory) "a"))))))
+        (sync (file-activity-channel))
+        `(robust remove ,(build-path (current-directory) "a"))))))

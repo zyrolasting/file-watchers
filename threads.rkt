@@ -1,23 +1,23 @@
 #lang racket/base
 
 (require
- racket/contract)
+  racket/contract)
 
 (provide
- report-iface
- report-change-literal
- (contract-out
-  [file-watcher-channel-try-get (-> (or/c boolean? list?))]
-  [file-watcher-channel-get (-> list?)]
-  [file-watcher-status-channel (parameter/c async-channel?)]
-  [file-activity-channel (parameter/c async-channel?)]))
+  report-iface
+  report-change-literal
+  (contract-out
+   [file-watcher-channel-try-get (-> (or/c boolean? list?))]
+   [file-watcher-channel-get (-> list?)]
+   [file-watcher-status-channel (parameter/c async-channel?)]
+   [file-activity-channel (parameter/c async-channel?)]))
 
 
-;; ------------------------------------------------------------------
+;; ------------------------------------------------------------------ 
 ;; Implementation
 
 (require
- racket/async-channel)
+  racket/async-channel)
 
 (define file-activity-channel (make-parameter (make-async-channel)))
 (define file-watcher-status-channel (make-parameter (make-async-channel)))
@@ -52,25 +52,25 @@
 
 (module+ test-lib
   (provide
-   (contract-out
-    [set-alarm       (->* () (positive-integer?) evt?)]
-    [expect-status   (-> list? any)]
-    [expect-activity (-> list? any)]
-    [expect-silence  (-> any)]))
+    (contract-out
+       [set-alarm       (->* () (positive-integer?) evt?)]
+       [expect-status   (-> list? any)]
+       [expect-activity (-> list? any)]
+       [expect-silence  (-> any)]))
 
   (require
-   rackunit
-   racket/math
-   racket/format)
+    rackunit
+    racket/math
+    racket/format)
 
   (define (set-alarm [ms 100])
     (alarm-evt (+ (current-inexact-milliseconds) ms)))
 
   (define (expect-message channel message)
     (check-equal?
-     (sync channel (set-alarm))
-     message
-     (~a "Waiting for" message)))
+      (sync channel (set-alarm))
+      message
+      (~a "Waiting for" message)))
 
   (define (expect-activity message)
     (expect-message (file-activity-channel) message))
