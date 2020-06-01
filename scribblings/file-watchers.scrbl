@@ -172,8 +172,8 @@ is cross-platform, but cannot detect any activity between filesystem polls.
 Furthermore, @racket[robust-watch] will only compare file permissions, access times, and file size -- i.e. not contents.
 
 @racket[robust-watch] only reports @racket['add], @racket['change], and @racket['remove]
-events on @racket[file-activity-channel] It does not report status information
-on @racket[file-watcher-status-channel]
+events on @racket[file-activity-channel]. It does not report status information
+on @racket[file-watcher-status-channel].
 
 If @racket[batch?] is true then the changes for a given update will be reported as a single list of events. (e.g. @racket[(list (list 'robust 'add path1) (list 'robust 'remove path2))])
 

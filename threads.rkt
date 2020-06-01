@@ -7,10 +7,10 @@
   report-iface
   report-change-literal
   (contract-out
-   [file-watcher-channel-try-get (-> (or/c boolean? list?))]
-   [file-watcher-channel-get (-> list?)]
-   [file-watcher-status-channel (parameter/c async-channel?)]
-   [file-activity-channel (parameter/c async-channel?)]))
+    [file-watcher-channel-try-get (-> (or/c boolean? list?))]
+    [file-watcher-channel-get (-> list?)]
+    [file-watcher-status-channel (parameter/c async-channel?)]
+    [file-activity-channel (parameter/c async-channel?)]))
 
 
 ;; ------------------------------------------------------------------ 
@@ -53,10 +53,10 @@
 (module+ test-lib
   (provide
     (contract-out
-       [set-alarm       (->* () (positive-integer?) evt?)]
-       [expect-status   (-> list? any)]
-       [expect-activity (-> list? any)]
-       [expect-silence  (-> any)]))
+      [set-alarm       (->* () (positive-integer?) evt?)]
+      [expect-status   (-> list? any)]
+      [expect-activity (-> list? any)]
+      [expect-silence  (-> any)]))
 
   (require
     rackunit

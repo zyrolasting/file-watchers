@@ -41,12 +41,12 @@
         (apply + attrs))))
 
 (define (get-robust-state path)
-   (define listing (if (file-exists? path)
-                       (list path)
-                       (recursive-file-list path)))
-   (make-immutable-hash (map cons
-                             listing
-                             (get-listing-numbers listing))))
+    (define listing (if (file-exists? path)
+                        (list path)
+                        (recursive-file-list path)))
+    (make-immutable-hash (map cons
+                              listing
+                              (get-listing-numbers listing))))
 
 (define (mark-changes prev next)
   (hash-union prev next
@@ -56,8 +56,8 @@
 (define (mark-status prev next)
   (make-immutable-hash
     (map
-     (lambda (pair)
-       (if (symbol? (cdr pair))
+      (lambda (pair)
+        (if (symbol? (cdr pair))
           pair
           (cons (car pair)
                 (if (path-on-disk? (car pair)) 'add 'remove))))
@@ -136,9 +136,9 @@
 
       ; TODO: Paratition these messages into "may appear" and "must appear"
       (define expected-messages
-        `((robust change ,(build-path (current-directory) "c"))  ; must
-          (robust remove ,(build-path (current-directory) "b"))  ; may
-          (robust remove ,(build-path (current-directory)))))    ; must
+        `((robust change ,(build-path (current-directory) "c")) ; must
+          (robust remove ,(build-path (current-directory) "b")) ; may
+          (robust remove ,(build-path (current-directory)))))   ; must
 
       (let loop ()
         (define msg (file-watcher-channel-try-get))
@@ -184,7 +184,7 @@
       (thread-wait th)))
 
   (test-case
-      "Robust watch over file"
+     "Robust watch over file"
     (parameterize ([current-directory (create-temp-directory)]
                    [robust-poll-milliseconds 50]
                    [file-activity-channel (make-async-channel)])
