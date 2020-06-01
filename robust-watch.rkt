@@ -3,24 +3,23 @@
 ;; This module provides a cross-platform, polling based file watch.
 
 (require
- racket/contract
- racket/list
- racket/set
- )
+  racket/contract
+  racket/list
+  racket/set)
 
 (provide
- (contract-out
-  [robust-poll-milliseconds (parameter/c exact-positive-integer?)]
-  [robust-watch  (->* () (path-on-disk? #:batch? boolean?) thread?)]))
+  (contract-out
+    [robust-poll-milliseconds (parameter/c exact-positive-integer?)]
+    [robust-watch  (->* () (path-on-disk? #:batch? any/c) thread?)]))
 
 
 ;; ------------------------------------------------------------------
 ;; Implementation
 
 (require
- racket/hash
- "./filesystem.rkt"
- "./threads.rkt")
+  racket/hash
+  "./filesystem.rkt"
+  "./threads.rkt")
 
 (define-values (report-activity report-status) (report-iface 'robust))
 
@@ -35,15 +34,11 @@
               0))))
 
 (define (get-listing-numbers listing)
-  (foldl
-   (lambda (p res)
-     (define attrs (get-file-attributes p))
-     (append res (list
-                  (if (not attrs)
-                      -1
-                      (apply + attrs)))))
-   '()
-   listing))
+  (for/list ([p listing])
+    (define attrs (get-file-attributes p))
+    (if (not attrs)
+        -1
+        (apply + attrs))))
 
 (define (get-robust-state path)
   (define listing (if (file-exists? path)
@@ -68,40 +63,50 @@
                 (if (path-on-disk? (car pair)) 'add 'remove))))
     (hash->list (mark-changes prev next)))))
 
-(define (robust-watch [path (current-directory)] #:batch? [batch? #f])
-  (define complete (path->complete-path (simplify-path path #t)))
-  (thread (lambda ()
-            (define initial (get-robust-state complete))
-            (let loop ([state initial])
-              (cond [(path-on-disk? complete)
-                     (let* ([next (get-robust-state complete)]
-                            [status-marked-hash (mark-status state next)]
-                            )
-                       (cond [(equal? #f batch?) ; no need to pull in racket/bool for one test
-                              ; we should NOT batch notifications
-                              (hash-for-each
-                               status-marked-hash
-                               (lambda (affected op)
-                                 (unless (equal? op 'same)
-                                   (report-activity op affected))))
-                              ]
-                             [else ; we SHOULD batch notifications
+(define (get-next-status current-state complete-path)
+  (define next (get-robust-state complete-path))
+  (define status-marked-hash (mark-status current-state next))
+  (values next status-marked-hash))
 
-                              (let* ([report (filter-not (lambda (arg) (equal? 'same (cdr arg)))
-                                                         (hash->list status-marked-hash))])
-                                (when (not (null? report))
-                                  (define messages
-                                    (for/list ([item report])
-                                      ;item looks like, e.g.:   (cons <path:/foo/bar> 'add)
-                                      (list 'robust (cdr item) (car item))))
-                                  (report-change-literal messages)))
-                              ]
-                             )
-                       (sync/enable-break (alarm-evt (+ (current-inexact-milliseconds)
-                                                        (robust-poll-milliseconds))))
-                       (loop next))]
-                    [else
-                     (report-activity 'remove complete)])))))
+(define (robust-watch [path (current-directory)] #:batch? [batch? #f])
+  (define complete-path (path->complete-path (simplify-path path #t)))
+  (thread
+   (lambda ()
+     (let loop ([state (get-robust-state complete-path)])
+       (define exists? (path-on-disk? complete-path))
+       (define next
+         (cond [(not exists?)
+                (report-activity 'remove complete-path)
+                #f]
+               [(equal? #f batch?)
+                ; file exists, we should NOT batch notifications
+                (define-values (next status-marked-hash)
+                  (get-next-status state complete-path))
+                (hash-for-each
+                 status-marked-hash
+                 (lambda (affected op)
+                   (unless (equal? op 'same)
+                     (report-activity op affected))))
+                next]
+               [else
+                ; file exists, we SHOULD batch notifications
+                (define-values (next status-marked-hash)
+                  (get-next-status state complete-path))
+                (define report (filter-not (lambda (arg) (equal? 'same (cdr arg)))
+                                           (hash->list status-marked-hash)))
+                (when (not (null? report))
+                  (define messages
+                    (for/list ([item report])
+                      ;item looks like, e.g.:   (cons <path:/foo/bar> 'add)
+                      (list 'robust (cdr item) (car item))))
+                  (report-change-literal messages))
+                next]))
+       ; if we reported a 'remove on the original state then next is #f and we can stop
+       ; watching.
+       (when next
+         (sync/enable-break (alarm-evt (+ (current-inexact-milliseconds)
+                                          (robust-poll-milliseconds))))
+         (loop next))))))
 
 
 (module+ test
