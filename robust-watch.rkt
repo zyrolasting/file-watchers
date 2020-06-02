@@ -30,8 +30,8 @@
     (list (file-or-directory-modify-seconds path)
           (file-or-directory-permissions path 'bits)
           (cond
-            [(file-exists? path)      (file-size path)] ; does path reference a file?
-            [(directory-exists? path) 0]                ; does path reference a directory?
+            [(file-exists? path)      (file-size path)] ; does path resolve to a file?
+            [(directory-exists? path) 0]                ; does path resolve to a directory?
             [else                     0]))))
 
 (define (get-listing-numbers listing)
@@ -157,8 +157,7 @@
       (parameterize ([current-directory dir2])
         (make-directory* (build-path "foo" "bar" "baz"))
         (current-directory (build-path "foo" "bar" "baz"))
-        (create-file "a.txt")
-        )
+        (create-file "a.txt"))
 
       (define th (robust-watch #:batch? #t))
 
