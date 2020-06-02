@@ -8,3 +8,8 @@ Use this to understand I/O behavior in a system and to increase iteration speed 
 * `raco test *.rkt` to run tests
 * `raco setup -l file-watchers` to build the package and documentation.
 * `raco file-watchers -h` for CLI use
+
+## Credits
+
+* @zyrolasting: Initial implementation
+* @dstorrs: Added `#:batch?` option to `robust-watch`
