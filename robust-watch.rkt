@@ -29,9 +29,10 @@
   (with-handlers ([exn:fail? (λ _ #f)])
     (list (file-or-directory-modify-seconds path)
           (file-or-directory-permissions path 'bits)
-          (if (file-exists? path)
-              (file-size path)
-              0))))
+          (cond
+            [(file-exists? path)      (file-size path)] ; does path reference a file?
+            [(directory-exists? path) 0]                ; does path reference a directory?
+            [else                     0]))))
 
 (define (get-listing-numbers listing)
   (for/list ([p listing])
