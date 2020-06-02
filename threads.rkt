@@ -5,6 +5,7 @@
 
 (provide
   report-iface
+  report-change-literal
   (contract-out
     [file-watcher-channel-try-get (-> (or/c boolean? list?))]
     [file-watcher-channel-get (-> list?)]
@@ -34,6 +35,9 @@
 
 (define (report-change . rest)
   (async-channel-put (file-activity-channel) rest))
+
+(define (report-change-literal arg)
+  (async-channel-put (file-activity-channel) arg))
 
 (define (report-status . rest)
   (async-channel-put (file-watcher-status-channel) rest))

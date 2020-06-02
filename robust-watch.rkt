@@ -3,12 +3,14 @@
 ;; This module provides a cross-platform, polling based file watch.
 
 (require
-  racket/contract)
+  racket/contract
+  racket/list
+  racket/set)
 
 (provide
   (contract-out
     [robust-poll-milliseconds (parameter/c exact-positive-integer?)]
-    [robust-watch  (->* () (path-on-disk?) thread?)]))
+    [robust-watch  (->* () (path-on-disk? #:batch? any/c) thread?)]))
 
 
 ;; ------------------------------------------------------------------ 
@@ -25,19 +27,19 @@
 
 (define (get-file-attributes path)
   (with-handlers ([exn:fail? (λ _ #f)])
-                 (cons (file-or-directory-modify-seconds path)
-                       (file-or-directory-permissions path 'bits))))
+    (list (file-or-directory-modify-seconds path)
+          (file-or-directory-permissions path 'bits)
+          (cond
+            [(file-exists? path)      (file-size path)] ; does path resolve to a file?
+            [(directory-exists? path) 0]                ; does path resolve to a directory?
+            [else                     0]))))
 
 (define (get-listing-numbers listing)
-  (foldl
-    (lambda (p res)
-      (define attrs (get-file-attributes p))
-      (append res (list
-                    (if (not attrs)
-                        -1
-                        (+ (car attrs) (cdr attrs))))))
-    '()
-    listing))
+  (for/list ([p listing])
+    (define attrs (get-file-attributes p))
+    (if (not attrs)
+        -1
+        (apply + attrs))))
 
 (define (get-robust-state path)
     (define listing (if (file-exists? path)
@@ -60,24 +62,52 @@
           pair
           (cons (car pair)
                 (if (path-on-disk? (car pair)) 'add 'remove))))
-      (hash->list (mark-changes prev next)))))
+    (hash->list (mark-changes prev next)))))
 
-(define (robust-watch [path (current-directory)])
-  (define complete (path->complete-path (simplify-path path #t)))
-  (thread (lambda ()
-    (define initial (get-robust-state complete))
-    (let loop ([state initial])
-      (sync/enable-break (alarm-evt (+ (current-inexact-milliseconds)
-                                       (robust-poll-milliseconds))))
-      (if (path-on-disk? complete)
-        (let ([next (get-robust-state complete)])
-          (hash-for-each
-            (mark-status state next)
-            (lambda (affected op)
-              (unless (equal? op 'same)
-                (report-activity op affected))))
-          (loop next))
-        (report-activity 'remove complete))))))
+(define (get-next-status current-state complete-path)
+  (define next (get-robust-state complete-path))
+  (define status-marked-hash (mark-status current-state next))
+  (values next status-marked-hash))
+
+(define (robust-watch [path (current-directory)] #:batch? [batch? #f])
+  (define complete-path (path->complete-path (simplify-path path #t)))
+  (thread
+   (lambda ()
+     (let loop ([state (get-robust-state complete-path)])
+       (define exists? (path-on-disk? complete-path))
+       (define next
+         (cond [(not exists?)
+                (report-activity 'remove complete-path)
+                #f]
+               [(equal? #f batch?)
+                ; file exists, we should NOT batch notifications
+                (define-values (next status-marked-hash)
+                  (get-next-status state complete-path))
+                (hash-for-each
+                 status-marked-hash
+                 (lambda (affected op)
+                   (unless (equal? op 'same)
+                     (report-activity op affected))))
+                next]
+               [else
+                ; file exists, we SHOULD batch notifications
+                (define-values (next status-marked-hash)
+                  (get-next-status state complete-path))
+                (define report (filter-not (lambda (arg) (equal? 'same (cdr arg)))
+                                           (hash->list status-marked-hash)))
+                (when (not (null? report))
+                  (define messages
+                    (for/list ([item report])
+                      ;item looks like, e.g.:   (cons <path:/foo/bar> 'add)
+                      (list 'robust (cdr item) (car item))))
+                  (report-change-literal messages))
+                next]))
+       ; if we reported a 'remove on the original state then next is #f and we can stop
+       ; watching.
+       (when next
+         (sync/enable-break (alarm-evt (+ (current-inexact-milliseconds)
+                                          (robust-poll-milliseconds))))
+         (loop next))))))
 
 
 (module+ test
@@ -90,7 +120,7 @@
 
   (define (allow-poll) (sleep (/ (robust-poll-milliseconds) 1000)))
   (test-case
-    "Robust watch over directory"
+     "Robust watch over directory, unbatched"
     (parameterize ([current-directory (create-temp-directory)]
                    [robust-poll-milliseconds 50]
                    [file-activity-channel (make-async-channel)])
@@ -117,8 +147,44 @@
           (check-true (and (member msg expected-messages) #t))
           (loop)))))
 
+
   (test-case
-    "Robust watch over file"
+     "Robust watch over directory, batched"
+    (parameterize ([current-directory (create-temp-directory)]
+                   [robust-poll-milliseconds 50]
+                   [file-activity-channel (make-async-channel)])
+      (define dir2  (create-temp-directory))
+      (parameterize ([current-directory dir2])
+        (make-directory* (build-path "foo" "bar" "baz"))
+        (current-directory (build-path "foo" "bar" "baz"))
+        (create-file "a.txt"))
+
+      (define th (robust-watch #:batch? #t))
+
+      (allow-poll)
+
+      (rename-file-or-directory (build-path dir2 "foo")
+                                (build-path (current-directory) "foo"))
+      (delete-directory/files dir2)
+
+      (allow-poll)
+      (allow-poll)
+
+      (define messages (file-watcher-channel-try-get))
+
+      (allow-poll)
+
+      (define dir (current-directory))
+      (check-equal? (sort messages path<? #:key last)
+                    `((robust add ,(build-path dir "foo"))
+                      (robust add ,(build-path dir "foo/bar"))
+                      (robust add ,(build-path dir "foo/bar/baz"))
+                      (robust add ,(build-path dir "foo/bar/baz/a.txt"))))
+      (delete-directory/files (current-directory))
+      (thread-wait th)))
+
+  (test-case
+     "Robust watch over file"
     (parameterize ([current-directory (create-temp-directory)]
                    [robust-poll-milliseconds 50]
                    [file-activity-channel (make-async-channel)])

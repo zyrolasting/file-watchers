@@ -162,18 +162,22 @@ watching thread.
 @section{Poll-based file monitoring}
 
 @defproc[#:kind "file-watcher"
-(robust-watch [path path-on-disk?])
+(robust-watch [path path-on-disk?] [#:batch? batch? any/c #f])
               thread?]{
 
 A @racket[robust] watch operates on a polling mechanism that compares
 recursive listings of the @racket[path] to report changes. This approach
 is cross-platform, but cannot detect any activity between filesystem polls.
 
-Furthermore, @racket[robust-watch] will only compare file permissions and access times, not contents.
+Furthermore, @racket[robust-watch] will only compare file permissions, access times, and file size -- i.e. not contents.
 
 @racket[robust-watch] only reports @racket['add], @racket['change], and @racket['remove]
 events on @racket[file-activity-channel]. It does not report status information
-on @racket[file-watcher-status-channel].}
+on @racket[file-watcher-status-channel].
+
+If @racket[batch?] is true then the changes for a given update will be reported as a single list of events. (e.g. @racket[(list (list 'robust 'add path1) (list 'robust 'remove path2))])
+
+If @racket[batch?] is #f then each event will be reported individually.}
 
 @defthing[robust-poll-milliseconds (parameter/c exact-positive-integer?)]{
 A @racket[parameter] for the number of milliseconds a robust watch poll
