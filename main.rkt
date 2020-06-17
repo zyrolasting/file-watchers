@@ -19,12 +19,14 @@
                              ((listof directory-exists?)
                               (-> list? any)
                               (-> list? any)
-                              (-> path? thread?))
+                              (-> path? thread?)
+                              #:delay positive?)
                              thread?)]
     [watch (->* () ((listof path-on-disk?)
                     (-> list? any)
                     (-> list? any)
-                    (-> path? thread?))
+                    (-> path? thread?)
+                    #:delay positive?)
                     thread?)]))
 
 ;; ------------------------------------------------------------------ 
@@ -51,18 +53,22 @@
           [paths (list (current-directory))]
           [on-activity displayln]
           [on-status displayln]
-          [thread-maker (suggest-approach #:apathetic #f)])
+          [thread-maker (suggest-approach #:apathetic #f)]
+          #:delay [delay-seconds 1])
   (define watchers (map thread-maker paths))
   (thread (lambda () (let loop ()
     (define activity (async-channel-try-get (file-activity-channel)))
     (define status (async-channel-try-get (file-watcher-status-channel)))
     (when status (on-status status))
     (when activity (on-activity activity))
-    (when (ormap thread-running? watchers) (loop))))))
+    (when (ormap thread-running? watchers)
+      (sleep delay-seconds)
+      (loop))))))
 
 (define (watch-directories
           [paths (list (current-directory))]
           [on-activity displayln]
           [on-status displayln]
-          [thread-maker (suggest-approach #:apathetic #f)])
-  (watch paths on-activity on-status thread-maker))
+          [thread-maker (suggest-approach #:apathetic #f)]
+          #:delay [delay-seconds 1])
+  (watch paths on-activity on-status thread-maker #:delay delay-seconds))
