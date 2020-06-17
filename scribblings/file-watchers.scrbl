@@ -38,14 +38,16 @@ will appear via @racket[displayln].
   [paths (listof path-on-disk?) (list (current-directory))]
   [on-activity (-> list? any) displayln]
   [on-status (-> list? any) displayln]
-  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
+  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)]
+  [#:delay delay-time positive? 1])
   thread?]{
 Returns a thread that watches all given paths representing files or directories
 on disk. For each path, @racket[thread-maker] is invoked to create a subordinate
 thread to monitor that path.
 
 The thread returned from @racket[watch] will wait for all subordinate threads
-to terminate before it itself terminates. Breaking is enabled.
+to terminate before it itself terminates. Breaking is enabled, and the watch
+will yield time to other threads every @racket[delay-time] seconds.
 
 @racket[thread-maker] should either be one of @racket[apathetic-watch], @racket[intensive-watch], or @racket[robust-watch],
 or a procedure that returns a thread created using one of those procedures.}
@@ -55,14 +57,13 @@ or a procedure that returns a thread created using one of those procedures.}
   [directories (listof directory-exists?) (list (current-directory))]
   [on-activity (-> list? any) displayln]
   [on-status (-> list? any) displayln]
-  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)])
-  thread?]{
+  [thread-maker (-> path? thread?) (suggest-approach #:apathetic #f)]
+  [#:delay delay-time positive? 1])
+thread?]{
 Like @racket[watch], except the contract is restricted to directories.
-
 
 @deprecated[#:what "procedure" @racket[watch]]{
 @racket[watch-directories] will be removed after January 1, 2020.}
-
 }
 
 @defproc[(suggest-approach [#:apathetic apathetic boolean?])
