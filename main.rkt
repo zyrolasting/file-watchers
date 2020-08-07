@@ -28,11 +28,13 @@
 
 
 (define (make-make-poll-evt delay/seconds)
-  (λ (path) (alarm-evt (+ (current-inexact-milliseconds) (/ delay/seconds 1000)))))
+  (λ (info [path (hash-ref info 'path)])
+    (alarm-evt (+ (current-inexact-milliseconds) (/ delay/seconds 1000)))))
 
 
 (define (make-make-fs-evt make-poll-evt)
-  (λ (path) (filesystem-change-evt path (λ () (make-poll-evt path)))))
+  (λ (info [path (hash-ref info 'path)])
+    (filesystem-change-evt path (λ () (make-poll-evt path)))))
 
 
 (define (path-matches-any-pattern? patterns path)
@@ -45,9 +47,7 @@
          (case (hash-ref info 'kind)
            [(file) (list info)]
            [(directory)
-            (cons info
-                  (map (λ (p) (find-file-infos patterns p))
-                       (find-files (λ (p) (not (equal? p path))) path)))]
+            (cons info (accumulate-info (directory-list #:build? #t path) patterns))]
            [(dne) null]))))
 
 (define (accumulate-info start-paths patterns)
@@ -60,18 +60,17 @@
 
 (define (watch delay/seconds make-evt patterns start-paths)
   (apply sync/enable-break
-         (map (λ (path)
+         (map (λ (info)
                 (handle-evt
-                 (begin (eprintf "Watching ~a~n" path)
-                        (make-evt path))
+                 (make-evt info)
                  (λ (e)
-                   (async-channel-put file-activity-channel path))))
+                   (async-channel-put file-activity-channel (hash-ref info 'path)))))
               (accumulate-info start-paths patterns))))
 
 (define (make-watcher delay/seconds patterns start-paths)
-  (define make-evt (make-make-evt delay/seconds))
   (thread
    (λ ()
+     (define make-evt (make-make-evt delay/seconds))
      (let loop ()
        (watch delay/seconds make-evt patterns start-paths)
        (loop)))))
