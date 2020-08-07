@@ -1,10 +1,20 @@
 #lang racket/base
 
+(require racket/contract)
+
+(provide
+ (contract-out
+  [make-watcher (-> (>=/c 0) (listof (or/c regexp? pregexp?)) (listof path-string?) thread?)]
+  [file-activity-channel async-channel?]))
+
+
 (require racket/async-channel
          racket/file
          (only-in racket/function curry const))
 
+
 (define file-activity-channel (make-async-channel))
+
 
 (define (path->file-info path)
   (define kind
