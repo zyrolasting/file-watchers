@@ -1,8 +1,5 @@
-# `file-watchers`
-
-This is the out-of-the-box way to watch files you have been looking for in Racket.
-
-Use this to understand I/O behavior in a system and to increase iteration speed for local development.
+A cross-platform file monitoring library and command-line application
+for Racket
 
 ## Credits
 
