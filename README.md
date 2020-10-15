@@ -6,7 +6,7 @@ Use this to understand I/O behavior in a system and to increase iteration speed 
 
 ## Credits
 
-* @zyrolasting: Initial implementation, refactor for [zcpkg][]
+* @zyrolasting: Initial implementation, refactor for [xiden][]
 * @dstorrs: Added `#:batch?` option to `robust-watch`
 
-[zcpkg]: https://github.com/zyrolasting/zcpkg
+[xiden]: https://github.com/zyrolasting/xiden
