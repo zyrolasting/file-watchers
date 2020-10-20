@@ -144,9 +144,9 @@ Returns a hash table that maps a path @racketid[P] to one of the following symbo
 uses @racket['*].}
 
 @itemlist[
-@item{@racket['+]: @racketid[P] appeared on disk.}
+@item{@racket['+]: @racketid[P] was added on disk.}
 
-@item{@racket['-]: @racketid[P] appeared on disk.}
+@item{@racket['-]: @racketid[P] was removed from disk.}
 
 @item{@racket['*]: The file, directory, or link referenced by @racketid[P] has changed,
       because @racket[(not (equal? (hash-ref before P) (hash-ref now P)))].}
@@ -155,8 +155,8 @@ uses @racket['*].}
 @racket[before] or @racket[now] before a determination could be
 made. @racket[#f] would only appear as a consequence of a
 synchronization bug that unsafely modifies @racket[before] or
-@racket[now]. It is not expected, and is mentioned here only for
-completeness reasons.}
+@racket[now]. It is not expected, and is mentioned only for
+completeness.}
 
 ]
 
